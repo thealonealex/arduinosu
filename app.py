@@ -4,6 +4,8 @@
 # for use with the Arduino tone() function or ESP32 LEDC on microcontrollers.
 # ----------------------------------------------------------------------------------
 
+# File taken from https://github.com/VihangaNethmaka/MIDI-To-Arduino-Converter
+
 import os
 import shutil
 import sys
@@ -17,7 +19,11 @@ import mido
 # 1. Place your MIDI file in the same directory as this script (app.py).
 # 2. Update the variable below with the EXACT name of your MIDI file.
 # ---------------------------------------------------------------------
-MIDI_FILENAME = "rude_buster.mid"  # <--- EDIT THIS LINE (e.g., "MySong.mid")
+MIDI_FILENAME = sys.argv[1]  # pass a filename!
+if ".mid" not in MIDI_FILENAME:
+    print("Usage: `python3 app.py [.mid file]`")
+    exit()
+
 
 # The target folder where the converted C array file will be placed.
 OUTPUT_DIR = Path("MIDI_Tune_Player")
@@ -240,6 +246,8 @@ def convert_midi_to_arrays(filename):
                     duration_ms.append(duration)
 
                 del held_notes[note]  # Release the current note
+                # Append a rest (https://github.com/VihangaNethmaka/MIDI-To-Arduino-Converter/issues/1)
+                held_notes[255] = current_time_ticks
 
     if not melody_macros:
         print("WARNING: No notes were extracted from the MIDI file.")
@@ -337,6 +345,7 @@ const int melody_length = sizeof(melody) / sizeof(melody[0]);
 
         print(f"\nSUCCESS: Generated C++ header file: '{output_filename}'")
         print(f"Total notes extracted: {len(melody)}")
+        os.system("perl -pi -e 's/[^[:ascii:]]//g' MIDI_Tune_Player/melody_data.h")
 
     except Exception as e:
         print(f"ERROR writing file: {e}")
